@@ -1,0 +1,27 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>ead44c04-83d1-4d7f-8bdb-eeb1810f9527</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.10" />
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.10" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.10">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="10.2.3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Clausio.Legal.Core\Clausio.Legal.Core.csproj" />
+    <ProjectReference Include="..\Clausio.Legal.Service\Clausio.Legal.Service.csproj" />
+    <ProjectReference Include="..\Clausio.Legal.Infrastructure\Clausio.Legal.Infrastructure.csproj" />
+    <ProjectReference Include="..\Clausio.Legal.Cache\Clausio.Legal.Cache.csproj" />
+  </ItemGroup>
+
+</Project>
