@@ -1,0 +1,15 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: clausio-legal-postgres
+    environment:
+      POSTGRES_DB: clausio_legal
+      POSTGRES_USER: clausio
+      POSTGRES_PASSWORD: clausio
+    ports:
+      - "5432:5432"
+    volumes:
+      - clausio_legal_pgdata:/var/lib/postgresql/data
+
+volumes:
+  clausio_legal_pgdata:

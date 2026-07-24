@@ -1,0 +1,6 @@
+@Clausio.Legal.API_HostAddress = http://localhost:5123
+
+GET {{Clausio.Legal.API_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
