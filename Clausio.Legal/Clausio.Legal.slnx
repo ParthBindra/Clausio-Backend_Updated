@@ -1,0 +1,7 @@
+<Solution>
+  <Project Path="Clausio.Legal.API/Clausio.Legal.API.csproj" />
+  <Project Path="Clausio.Legal.Cache/Clausio.Legal.Cache.csproj" />
+  <Project Path="Clausio.Legal.Core/Clausio.Legal.Core.csproj" />
+  <Project Path="Clausio.Legal.Infrastructure/Clausio.Legal.Infrastructure.csproj" />
+  <Project Path="Clausio.Legal.Service/Clausio.Legal.Service.csproj" />
+</Solution>
