@@ -19,3 +19,15 @@ public class CreateHearingOrderDto
     public string? Responsible { get; set; }
     public DateTime Deadline { get; set; }
 }
+
+public class UpdateHearingDto
+{
+    public DateTime? HearingDate { get; set; }
+    public string? Stage { get; set; }
+    public string? Judge { get; set; }
+    public string? CourtHall { get; set; }
+    public string? WhatHappened { get; set; }
+    public string? JudgeObservation { get; set; }
+    public string? OpposingAdmission { get; set; }
+    public string? NextObjective { get; set; }
+}

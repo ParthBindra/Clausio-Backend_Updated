@@ -4,5 +4,4 @@ obj/
 .vs/
 appsettings.json
 appsettings.Development.json
-.env
-secrets.json
+App_Data/

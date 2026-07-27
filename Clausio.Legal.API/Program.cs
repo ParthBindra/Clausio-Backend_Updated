@@ -1,4 +1,6 @@
+using System.Security.Claims;
 using System.Text;
+using Clausio.Legal.API.Middleware;
 using Clausio.Legal.Cache;
 using Clausio.Legal.Core.Settings;
 using Clausio.Legal.Infrastructure;
@@ -11,105 +13,104 @@ using Microsoft.IdentityModel.Tokens;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
+// Controllers with JSON fix
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.ReferenceHandler =
+            System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
+        options.JsonSerializerOptions.DefaultIgnoreCondition =
+            System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull;
+    });
 
-builder.Services.AddControllers();
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
-builder.Services.AddOpenApi();
+// Swagger
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen(options =>
-{
-    options.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.OpenApiSecurityScheme
-    {
-        Name = "Authorization",
-        Type = Microsoft.OpenApi.SecuritySchemeType.Http,
-        Scheme = "Bearer",
-        BearerFormat = "JWT",
-        In = Microsoft.OpenApi.ParameterLocation.Header,
-        Description = "Enter your JWT access token."
-    });
-    options.AddSecurityRequirement(_ => new Microsoft.OpenApi.OpenApiSecurityRequirement
-    {
-        {
-            new Microsoft.OpenApi.OpenApiSecuritySchemeReference("Bearer", null),
-            new List<string>()
-        }
-    });
-});
+builder.Services.AddSwaggerGen();
 
+// JWT Settings
 builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection("Jwt"));
-var jwtSettings = builder.Configuration.GetSection("Jwt").Get<JwtSettings>() ?? new JwtSettings();
 
+// Database
 builder.Services.AddDbContext<ClausioDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("Default")));
 
+// Cache
 builder.Services.AddMemoryCache();
 builder.Services.AddSingleton<ICacheService, MemoryCacheService>();
 
+// Storage
 var storageRootPath = builder.Configuration["Storage:RootPath"]
     ?? Path.Combine(builder.Environment.ContentRootPath, "App_Data", "documents");
 builder.Services.AddSingleton<IDocumentStorage>(new LocalDiskDocumentStorage(storageRootPath));
 
+// AI
 builder.Services.AddSingleton<IAiClient, AnthropicAiClient>();
 
-builder.Services.AddScoped<IAuthService, AuthService>();
-builder.Services.AddScoped<IClientService, ClientService>();
-builder.Services.AddScoped<ICaseService, CaseService>();
-builder.Services.AddScoped<IActionPlanService, ActionPlanService>();
+// Services
+builder.Services.AddScoped<IAuthService,         AuthService>();
+builder.Services.AddScoped<IClientService,        ClientService>();
+builder.Services.AddScoped<ICaseService,          CaseService>();
+builder.Services.AddScoped<IActionPlanService,    ActionPlanService>();
 builder.Services.AddScoped<IContradictionService, ContradictionService>();
-builder.Services.AddScoped<IDocumentService, DocumentService>();
-builder.Services.AddScoped<IHearingService, HearingService>();
+builder.Services.AddScoped<IDocumentService,      DocumentService>();
+builder.Services.AddScoped<IHearingService,       HearingService>();
 builder.Services.AddScoped<ILegalResearchService, LegalResearchService>();
-builder.Services.AddScoped<ITimelineService, TimelineService>();
-builder.Services.AddScoped<IReadinessService, ReadinessService>();
-builder.Services.AddScoped<IStatsService, StatsService>();
-builder.Services.AddScoped<IAiService, AiService>();
+builder.Services.AddScoped<ITimelineService,      TimelineService>();
+builder.Services.AddScoped<IReadinessService,     ReadinessService>();
+builder.Services.AddScoped<IStatsService,         StatsService>();
+builder.Services.AddScoped<IAiService,            AiService>();
 
+// JWT Authentication
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
+        options.MapInboundClaims = false;
         options.TokenValidationParameters = new TokenValidationParameters
         {
-            ValidateIssuer = true,
-            ValidateAudience = true,
-            ValidateLifetime = true,
+            ValidateIssuer           = true,
+            ValidateAudience         = true,
+            ValidateLifetime         = true,
             ValidateIssuerSigningKey = true,
-            ValidIssuer = jwtSettings.Issuer,
-            ValidAudience = jwtSettings.Audience,
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings.Secret)),
+            ValidIssuer              = builder.Configuration["Jwt:Issuer"],
+            ValidAudience            = builder.Configuration["Jwt:Audience"],
+            IssuerSigningKey         = new SymmetricSecurityKey(
+                Encoding.UTF8.GetBytes(
+                    builder.Configuration["Jwt:Secret"] ??
+                    throw new InvalidOperationException("Jwt:Secret is not configured")
+                )),
+            NameClaimType = ClaimTypes.NameIdentifier,
         };
     });
 builder.Services.AddAuthorization();
 
-var app = builder.Build();
-
-// Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
+// CORS
+builder.Services.AddCors(options =>
 {
-    app.MapOpenApi();
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
-
-app.UseExceptionHandler(errorApp =>
-{
-    errorApp.Run(async context =>
-    {
-        var feature = context.Features.Get<Microsoft.AspNetCore.Diagnostics.IExceptionHandlerFeature>();
-        var exception = feature?.Error;
-        context.Response.ContentType = "application/json";
-        context.Response.StatusCode = exception is InvalidOperationException
-            ? StatusCodes.Status400BadRequest
-            : StatusCodes.Status500InternalServerError;
-        await context.Response.WriteAsJsonAsync(new { message = exception?.Message ?? "An unexpected error occurred." });
-    });
+    options.AddPolicy("AllowFrontend", policy =>
+        policy.AllowAnyOrigin()
+              .AllowAnyHeader()
+              .AllowAnyMethod());
 });
 
-app.UseHttpsRedirection();
+var app = builder.Build();
 
+// Middleware
+app.UseMiddleware<SecurityHeadersMiddleware>();
+app.UseMiddleware<RequestIdMiddleware>();
+app.UseMiddleware<ErrorHandlingMiddleware>();
+app.UseMiddleware<RateLimitingMiddleware>();
+app.UseMiddleware<RequestLoggingMiddleware>();
+
+app.UseSwagger();
+app.UseSwaggerUI(c =>
+{
+    c.SwaggerEndpoint("/swagger/v1/swagger.json", "Clausio Legal API v1");
+    c.RoutePrefix = "swagger";
+});
+
+app.UseCors("AllowFrontend");
 app.UseAuthentication();
 app.UseAuthorization();
-
 app.MapControllers();
 
 app.Run();

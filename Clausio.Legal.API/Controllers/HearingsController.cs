@@ -18,6 +18,13 @@ public class HearingsController(IHearingService hearingService) : ControllerBase
     public async Task<IActionResult> Create(Guid caseId, CreateHearingDto dto, CancellationToken cancellationToken) =>
         Ok(await hearingService.CreateAsync(caseId, dto, cancellationToken));
 
+    [HttpPut("{id:guid}")]
+    public async Task<IActionResult> Update(Guid caseId, Guid id, UpdateHearingDto dto, CancellationToken cancellationToken)
+    {
+        var hearing = await hearingService.UpdateAsync(caseId, id, dto, cancellationToken);
+        return hearing is null ? NotFound() : Ok(hearing);
+    }
+
     [HttpPut("{id:guid}/orders/{orderId:guid}/done")]
     public async Task<IActionResult> MarkOrderDone(Guid caseId, Guid id, Guid orderId, CancellationToken cancellationToken)
     {
