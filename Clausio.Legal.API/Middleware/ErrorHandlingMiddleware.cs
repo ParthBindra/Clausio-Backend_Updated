@@ -47,11 +47,7 @@ namespace Clausio.Legal.API.Middleware
 
             var response = new
             {
-                message   = ex is InvalidOperationException
-                    or ArgumentException
-                    or KeyNotFoundException
-                        ? ex.Message
-                        : "An unexpected error occurred. Please try again.",
+                message = ex.Message,
                 status    = context.Response.StatusCode,
                 timestamp = DateTime.UtcNow,
                 requestId = context.Items["RequestId"]?.ToString()
