@@ -1,9 +1,10 @@
-using System.Text;
 using Clausio.Legal.Core.Dtos;
 using Clausio.Legal.Core.Entities;
 using Clausio.Legal.Infrastructure;
 using Clausio.Legal.Infrastructure.Ai;
+using Clausio.Legal.Service.AI;
 using Microsoft.EntityFrameworkCore;
+using System.Text;
 
 namespace Clausio.Legal.Service;
 
@@ -27,18 +28,28 @@ public interface IAiService
     Task<string> DraftDocumentAsync(Guid caseId, DraftRequestDto request, CancellationToken cancellationToken = default);
 }
 
-public class AiService(ClausioDbContext db, IAiClient aiClient) : IAiService
+public class AiService(ClausioDbContext db, IAiClient aiClient, AiResponseParser parser) : IAiService
 {
     private const string BaseSystemPrompt =
         "You are Clausio, an AI legal assistant embedded in a case-management system for litigators. " +
         "Be precise, cite facts from the provided case dossier only, and flag when information is missing. " +
         "Respond in clear, well-structured plain text suitable for direct display in a legal case file.";
 
-    public Task<string> SummarizeCaseAsync(Guid caseId, CancellationToken cancellationToken = default) =>
-        RunWithCaseContextAsync(caseId, "Write a concise case summary covering the parties, procedural stage, and key facts.", cancellationToken);
+    public Task<string> SummarizeCaseAsync(
+    Guid caseId,
+    CancellationToken cancellationToken = default) =>
+    RunWithCaseContextAsync(
+        caseId,
+        PromptTemplates.JsonRules + "\n\n" + PromptTemplates.CaseSummary,
+        cancellationToken);
 
-    public Task<string> GenerateChronologyAsync(Guid caseId, CancellationToken cancellationToken = default) =>
-        RunWithCaseContextAsync(caseId, "Build a chronological timeline of the key events in this case, in date order, with the legal significance of each event.", cancellationToken);
+    public Task<string> GenerateChronologyAsync(
+        Guid caseId,
+        CancellationToken cancellationToken = default) =>
+        RunWithCaseContextAsync(
+            caseId,
+            PromptTemplates.JsonRules + "\n\n" + PromptTemplates.Chronology,
+            cancellationToken);
 
     public Task<string> DetectContradictionsAsync(Guid caseId, CancellationToken cancellationToken = default) =>
         RunWithCaseContextAsync(caseId, "Identify contradictions between claims and evidence in this case. For each, state the claim, the contradicting evidence, and how strong the contradiction is.", cancellationToken);
@@ -48,9 +59,15 @@ public class AiService(ClausioDbContext db, IAiClient aiClient) : IAiService
         var document = await db.Documents.Include(d => d.Case).FirstOrDefaultAsync(d => d.Id == documentId, cancellationToken)
             ?? throw new InvalidOperationException("Document not found.");
 
-        var prompt = $"Analyze the following document as evidence for case \"{document.Case?.Name}\".\n" +
-                     $"File name: {document.FileName}\nDocument type: {document.DocumentType}\nExhibit label: {document.ExhibitLabel}\n" +
-                     "Assess its evidentiary value and how it should be used in the case.";
+        var prompt =
+    PromptTemplates.JsonRules +
+    "\n\n" +
+    PromptTemplates.Evidence +
+    "\n\n" +
+    $"Case Name: {document.Case?.Name}\n" +
+    $"Document Name: {document.FileName}\n" +
+    $"Document Type: {document.DocumentType}\n" +
+    $"Exhibit Label: {document.ExhibitLabel}";
         return await aiClient.CompleteAsync(BaseSystemPrompt, prompt, cancellationToken);
     }
 

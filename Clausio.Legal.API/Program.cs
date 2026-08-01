@@ -1,5 +1,3 @@
-using System.Security.Claims;
-using System.Text;
 using Clausio.Legal.API.Middleware;
 using Clausio.Legal.Cache;
 using Clausio.Legal.Core.Settings;
@@ -7,9 +5,12 @@ using Clausio.Legal.Infrastructure;
 using Clausio.Legal.Infrastructure.Ai;
 using Clausio.Legal.Infrastructure.Storage;
 using Clausio.Legal.Service;
+using Clausio.Legal.Service.AI;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using System.Security.Claims;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -45,6 +46,7 @@ builder.Services.AddSingleton<IDocumentStorage>(new LocalDiskDocumentStorage(sto
 
 // AI
 builder.Services.AddSingleton<IAiClient, AnthropicAiClient>();
+builder.Services.AddSingleton<AiResponseParser>();
 
 // Services
 builder.Services.AddScoped<IAuthService,         AuthService>();

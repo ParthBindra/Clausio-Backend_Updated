@@ -15,7 +15,7 @@ public class AiController(IAiService aiService) : ControllerBase
     public async Task<IActionResult> Summary(Guid caseId, CancellationToken cancellationToken)
     {
         var result = await aiService.SummarizeCaseAsync(caseId, cancellationToken);
-        return Ok(new { summary = result });
+        return Ok(new { result = result });
     }
 
     // ✅ Returns { chronology: "..." }
@@ -23,7 +23,7 @@ public class AiController(IAiService aiService) : ControllerBase
     public async Task<IActionResult> Chronology(Guid caseId, CancellationToken cancellationToken)
     {
         var result = await aiService.GenerateChronologyAsync(caseId, cancellationToken);
-        return Ok(new { chronology = result });
+        return Ok(new { result = result });
     }
 
     // ✅ Returns { contradictions: "..." }
@@ -39,7 +39,7 @@ public class AiController(IAiService aiService) : ControllerBase
     public async Task<IActionResult> Evidence(Guid documentId, CancellationToken cancellationToken)
     {
         var result = await aiService.AnalyzeEvidenceAsync(documentId, cancellationToken);
-        return Ok(new { evidence = result });
+        return Ok(new { result = result });
     }
 
     // ✅ Returns { judgments: "..." } — matches frontend aiApi.getLegalResearch()
