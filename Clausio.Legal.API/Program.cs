@@ -3,6 +3,7 @@ using Clausio.Legal.Cache;
 using Clausio.Legal.Core.Settings;
 using Clausio.Legal.Infrastructure;
 using Clausio.Legal.Infrastructure.Ai;
+using Clausio.Legal.Infrastructure.Extraction;
 using Clausio.Legal.Infrastructure.Storage;
 using Clausio.Legal.Service;
 using Clausio.Legal.Service.AI;
@@ -44,23 +45,27 @@ var storageRootPath = builder.Configuration["Storage:RootPath"]
     ?? Path.Combine(builder.Environment.ContentRootPath, "App_Data", "documents");
 builder.Services.AddSingleton<IDocumentStorage>(new LocalDiskDocumentStorage(storageRootPath));
 
+// Document text extraction
+builder.Services.AddSingleton<IDocumentTextExtractionStrategy, TxtExtractionStrategy>();
+builder.Services.AddSingleton<IDocumentTextExtractor, DocumentTextExtractor>();
+
 // AI
 builder.Services.AddSingleton<IAiClient, AnthropicAiClient>();
 builder.Services.AddSingleton<AiResponseParser>();
 
 // Services
-builder.Services.AddScoped<IAuthService,         AuthService>();
-builder.Services.AddScoped<IClientService,        ClientService>();
-builder.Services.AddScoped<ICaseService,          CaseService>();
-builder.Services.AddScoped<IActionPlanService,    ActionPlanService>();
+builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IClientService, ClientService>();
+builder.Services.AddScoped<ICaseService, CaseService>();
+builder.Services.AddScoped<IActionPlanService, ActionPlanService>();
 builder.Services.AddScoped<IContradictionService, ContradictionService>();
-builder.Services.AddScoped<IDocumentService,      DocumentService>();
-builder.Services.AddScoped<IHearingService,       HearingService>();
+builder.Services.AddScoped<IDocumentService, DocumentService>();
+builder.Services.AddScoped<IHearingService, HearingService>();
 builder.Services.AddScoped<ILegalResearchService, LegalResearchService>();
-builder.Services.AddScoped<ITimelineService,      TimelineService>();
-builder.Services.AddScoped<IReadinessService,     ReadinessService>();
-builder.Services.AddScoped<IStatsService,         StatsService>();
-builder.Services.AddScoped<IAiService,            AiService>();
+builder.Services.AddScoped<ITimelineService, TimelineService>();
+builder.Services.AddScoped<IReadinessService, ReadinessService>();
+builder.Services.AddScoped<IStatsService, StatsService>();
+builder.Services.AddScoped<IAiService, AiService>();
 
 // JWT Authentication
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -69,13 +74,13 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         options.MapInboundClaims = false;
         options.TokenValidationParameters = new TokenValidationParameters
         {
-            ValidateIssuer           = true,
-            ValidateAudience         = true,
-            ValidateLifetime         = true,
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
             ValidateIssuerSigningKey = true,
-            ValidIssuer              = builder.Configuration["Jwt:Issuer"],
-            ValidAudience            = builder.Configuration["Jwt:Audience"],
-            IssuerSigningKey         = new SymmetricSecurityKey(
+            ValidIssuer = builder.Configuration["Jwt:Issuer"],
+            ValidAudience = builder.Configuration["Jwt:Audience"],
+            IssuerSigningKey = new SymmetricSecurityKey(
                 Encoding.UTF8.GetBytes(
                     builder.Configuration["Jwt:Secret"] ??
                     throw new InvalidOperationException("Jwt:Secret is not configured")

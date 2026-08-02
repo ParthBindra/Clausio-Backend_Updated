@@ -64,10 +64,8 @@ public class AiService(ClausioDbContext db, IAiClient aiClient, AiResponseParser
     "\n\n" +
     PromptTemplates.Evidence +
     "\n\n" +
-    $"Case Name: {document.Case?.Name}\n" +
-    $"Document Name: {document.FileName}\n" +
-    $"Document Type: {document.DocumentType}\n" +
-    $"Exhibit Label: {document.ExhibitLabel}";
+    $"Case Name: {document.Case?.Name}\n\n" +
+    BuildDocumentBlock(document);
         return await aiClient.CompleteAsync(BaseSystemPrompt, prompt, cancellationToken);
     }
 
@@ -222,10 +220,27 @@ public class AiService(ClausioDbContext db, IAiClient aiClient, AiResponseParser
             sb.AppendLine("\nDOCUMENTS ON FILE:");
             foreach (var d in caseEntity.Documents)
             {
-                sb.AppendLine($"- {d.FileName} ({d.DocumentType}, exhibit {d.ExhibitLabel})");
+                sb.AppendLine(BuildDocumentBlock(d));
             }
         }
 
+        return sb.ToString();
+    }
+
+    private static string BuildDocumentBlock(Document document)
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine("--------------------------------");
+        sb.AppendLine("DOCUMENT");
+        sb.AppendLine(document.FileName);
+        sb.AppendLine("TYPE");
+        sb.AppendLine(document.DocumentType ?? "Unspecified");
+        if (!string.IsNullOrWhiteSpace(document.ExtractedText))
+        {
+            sb.AppendLine("CONTENT");
+            sb.AppendLine(document.ExtractedText);
+        }
+        sb.AppendLine("--------------------------------");
         return sb.ToString();
     }
 }
