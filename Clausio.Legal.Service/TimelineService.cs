@@ -41,7 +41,7 @@ public class TimelineService(ClausioDbContext db) : ITimelineService
         var entity = await db.TimelineEvents.FirstOrDefaultAsync(t => t.CaseId == caseId && t.Id == id, cancellationToken);
         if (entity is null) return null;
 
-        entity.EventDate = dto.EventDate;
+        entity.EventDate = DateTime.SpecifyKind(dto.EventDate, DateTimeKind.Utc);
         entity.Event = dto.Event;
         entity.Source = dto.Source;
         entity.LegalSignificance = dto.LegalSignificance;
@@ -79,7 +79,7 @@ public class TimelineService(ClausioDbContext db) : ITimelineService
     private static TimelineEvent Map(Guid caseId, CreateTimelineEventDto dto) => new()
     {
         CaseId = caseId,
-        EventDate = dto.EventDate,
+        EventDate = DateTime.SpecifyKind(dto.EventDate, DateTimeKind.Utc),
         Event = dto.Event,
         Source = dto.Source,
         LegalSignificance = dto.LegalSignificance,
