@@ -3,5 +3,5 @@ obj/
 *.user
 .vs/
 appsettings.json
-appsettings.Development.json
 App_Data/
+appsettings.json

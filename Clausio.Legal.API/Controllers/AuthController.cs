@@ -25,4 +25,14 @@ public class AuthController(IAuthService authService) : ControllerBase
         var user = await authService.GetCurrentUserAsync(User.GetUserId(), cancellationToken);
         return user is null ? NotFound() : Ok(user);
     }
+
+    [HttpPut("change-password")]
+    public async Task<IActionResult> ChangePassword(
+        [FromBody] ChangePasswordDto dto,
+        CancellationToken cancellationToken)
+    {
+        var userId = User.GetUserId();
+        await authService.ChangePasswordAsync(userId, dto, cancellationToken);
+        return Ok(new { message = "Password changed successfully." });
+    }
 }

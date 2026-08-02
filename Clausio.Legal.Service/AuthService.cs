@@ -17,6 +17,7 @@ public interface IAuthService
     Task<AuthResponseDto> RegisterAsync(RegisterDto dto, CancellationToken cancellationToken = default);
     Task<AuthResponseDto> LoginAsync(LoginDto dto, CancellationToken cancellationToken = default);
     Task<User?> GetCurrentUserAsync(Guid userId, CancellationToken cancellationToken = default);
+    Task ChangePasswordAsync(Guid userId, ChangePasswordDto dto, CancellationToken cancellationToken = default);
 }
 
 public class AuthService(ClausioDbContext db, IOptions<JwtSettings> jwtOptions) : IAuthService
@@ -27,23 +28,20 @@ public class AuthService(ClausioDbContext db, IOptions<JwtSettings> jwtOptions) 
     public async Task<AuthResponseDto> RegisterAsync(RegisterDto dto, CancellationToken cancellationToken = default)
     {
         if (await db.Users.AnyAsync(u => u.Email == dto.Email, cancellationToken))
-        {
             throw new InvalidOperationException("A user with this email already exists.");
-        }
 
         var user = new User
         {
             FirstName = dto.FirstName ?? string.Empty,
-            LastName = dto.LastName ?? string.Empty,
-            Email = dto.Email ?? string.Empty,
-            Role = dto.Role,
-            Phone = dto.Phone,
+            LastName  = dto.LastName  ?? string.Empty,
+            Email     = dto.Email     ?? string.Empty,
+            Role      = dto.Role,
+            Phone     = dto.Phone,
         };
         user.PasswordHash = _passwordHasher.HashPassword(user, dto.Password ?? string.Empty);
 
         db.Users.Add(user);
         await db.SaveChangesAsync(cancellationToken);
-
         return BuildAuthResponse(user);
     }
 
@@ -54,15 +52,29 @@ public class AuthService(ClausioDbContext db, IOptions<JwtSettings> jwtOptions) 
 
         var result = _passwordHasher.VerifyHashedPassword(user, user.PasswordHash, dto.Password ?? string.Empty);
         if (result == PasswordVerificationResult.Failed)
-        {
             throw new InvalidOperationException("Invalid email or password.");
-        }
 
         return BuildAuthResponse(user);
     }
 
     public Task<User?> GetCurrentUserAsync(Guid userId, CancellationToken cancellationToken = default) =>
         db.Users.FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
+
+    // ✅ NEW — Change password
+    public async Task ChangePasswordAsync(Guid userId, ChangePasswordDto dto, CancellationToken cancellationToken = default)
+    {
+        var user = await db.Users.FirstOrDefaultAsync(u => u.Id == userId, cancellationToken)
+            ?? throw new InvalidOperationException("User not found.");
+
+        // Verify current password
+        var result = _passwordHasher.VerifyHashedPassword(user, user.PasswordHash, dto.CurrentPassword ?? string.Empty);
+        if (result == PasswordVerificationResult.Failed)
+            throw new InvalidOperationException("Current password is incorrect.");
+
+        // Set new password
+        user.PasswordHash = _passwordHasher.HashPassword(user, dto.NewPassword ?? string.Empty);
+        await db.SaveChangesAsync(cancellationToken);
+    }
 
     private AuthResponseDto BuildAuthResponse(User user)
     {
@@ -71,30 +83,28 @@ public class AuthService(ClausioDbContext db, IOptions<JwtSettings> jwtOptions) 
 
         var claims = new List<Claim>
         {
-            new(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
+            new(JwtRegisteredClaimNames.Sub,   user.Id.ToString()),
             new(JwtRegisteredClaimNames.Email, user.Email),
-            new(ClaimTypes.NameIdentifier, user.Id.ToString()),
+            new(ClaimTypes.NameIdentifier,     user.Id.ToString()),
         };
         if (!string.IsNullOrWhiteSpace(user.Role))
-        {
             claims.Add(new Claim(ClaimTypes.Role, user.Role));
-        }
 
         var token = new JwtSecurityToken(
-            issuer: _jwt.Issuer,
-            audience: _jwt.Audience,
-            claims: claims,
-            expires: DateTime.UtcNow.AddMinutes(_jwt.ExpiryMinutes),
+            issuer:            _jwt.Issuer,
+            audience:          _jwt.Audience,
+            claims:            claims,
+            expires:           DateTime.UtcNow.AddMinutes(_jwt.ExpiryMinutes),
             signingCredentials: credentials);
 
         return new AuthResponseDto
         {
-            Token = new JwtSecurityTokenHandler().WriteToken(token),
-            UserId = user.Id,
+            Token     = new JwtSecurityTokenHandler().WriteToken(token),
+            UserId    = user.Id,
             FirstName = user.FirstName,
-            LastName = user.LastName,
-            Email = user.Email,
-            Role = user.Role,
+            LastName  = user.LastName,
+            Email     = user.Email,
+            Role      = user.Role,
         };
     }
 }

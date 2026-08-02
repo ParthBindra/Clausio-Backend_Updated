@@ -7,7 +7,7 @@ namespace Clausio.Legal.Service;
 
 public interface ICaseService
 {
-    Task<List<Case>> ListAsync(CancellationToken cancellationToken = default);
+    Task<List<Case>> ListAsync(Guid userId, CancellationToken cancellationToken = default);
     Task<Case?> GetAsync(Guid id, CancellationToken cancellationToken = default);
     Task<Case> CreateAsync(CreateCaseDto dto, Guid createdByUserId, CancellationToken cancellationToken = default);
     Task<Case?> UpdateAsync(Guid id, UpdateCaseDto dto, CancellationToken cancellationToken = default);
@@ -16,29 +16,37 @@ public interface ICaseService
 
 public class CaseService(ClausioDbContext db) : ICaseService
 {
-    public Task<List<Case>> ListAsync(CancellationToken cancellationToken = default) =>
-        db.Cases.AsNoTracking().Include(c => c.Client).OrderByDescending(c => c.CreatedAt).ToListAsync(cancellationToken);
+    // ✅ FIXED — only returns cases belonging to the logged-in user
+    public Task<List<Case>> ListAsync(Guid userId, CancellationToken cancellationToken = default) =>
+        db.Cases
+            .AsNoTracking()
+            .Include(c => c.Client)
+            .Where(c => c.CreatedByUserId == userId)
+            .OrderByDescending(c => c.CreatedAt)
+            .ToListAsync(cancellationToken);
 
     public Task<Case?> GetAsync(Guid id, CancellationToken cancellationToken = default) =>
-        db.Cases.Include(c => c.Client).FirstOrDefaultAsync(c => c.Id == id, cancellationToken);
+        db.Cases
+            .Include(c => c.Client)
+            .FirstOrDefaultAsync(c => c.Id == id, cancellationToken);
 
     public async Task<Case> CreateAsync(CreateCaseDto dto, Guid createdByUserId, CancellationToken cancellationToken = default)
     {
         var entity = new Case
         {
-            Name = dto.Name,
-            CaseNumber = dto.CaseNumber,
-            CaseType = dto.CaseType,
-            SubType = dto.SubType,
-            Court = dto.Court,
-            CourtLocation = dto.CourtLocation,
-            Stage = dto.Stage,
-            Status = "Active",
-            Priority = dto.Priority,
-            OpposingAdv = dto.OpposingAdv,
-            FiledOn = dto.FiledOn,
-            NextHearing = dto.NextHearing,
-            ClientId = dto.ClientId,
+            Name            = dto.Name,
+            CaseNumber      = dto.CaseNumber,
+            CaseType        = dto.CaseType,
+            SubType         = dto.SubType,
+            Court           = dto.Court,
+            CourtLocation   = dto.CourtLocation,
+            Stage           = dto.Stage,
+            Status          = "Active",
+            Priority        = dto.Priority,
+            OpposingAdv     = dto.OpposingAdv,
+            FiledOn         = dto.FiledOn,
+            NextHearing     = dto.NextHearing,
+            ClientId        = dto.ClientId,
             CreatedByUserId = createdByUserId,
         };
 
@@ -52,12 +60,12 @@ public class CaseService(ClausioDbContext db) : ICaseService
         var entity = await db.Cases.FirstOrDefaultAsync(c => c.Id == id, cancellationToken);
         if (entity is null) return null;
 
-        if (dto.Name is not null) entity.Name = dto.Name;
-        if (dto.Stage is not null) entity.Stage = dto.Stage;
-        if (dto.Status is not null) entity.Status = dto.Status;
-        if (dto.Priority is not null) entity.Priority = dto.Priority;
-        if (dto.OpposingAdv is not null) entity.OpposingAdv = dto.OpposingAdv;
-        if (dto.NextHearing is not null) entity.NextHearing = dto.NextHearing;
+        if (dto.Name           is not null) entity.Name           = dto.Name;
+        if (dto.Stage          is not null) entity.Stage          = dto.Stage;
+        if (dto.Status         is not null) entity.Status         = dto.Status;
+        if (dto.Priority       is not null) entity.Priority       = dto.Priority;
+        if (dto.OpposingAdv    is not null) entity.OpposingAdv    = dto.OpposingAdv;
+        if (dto.NextHearing    is not null) entity.NextHearing    = dto.NextHearing;
         if (dto.ReadinessScore is not null) entity.ReadinessScore = dto.ReadinessScore;
 
         await db.SaveChangesAsync(cancellationToken);

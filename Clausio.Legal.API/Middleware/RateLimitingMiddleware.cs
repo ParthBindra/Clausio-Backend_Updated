@@ -11,7 +11,7 @@ namespace Clausio.Legal.API.Middleware
         private static readonly ConcurrentDictionary<string, RateLimitEntry>
             _requestCounts = new();
 
-        private const int MAX_REQUESTS    = 100;
+        private const int MAX_REQUESTS   = 1000;
         private const int WINDOW_SECONDS  = 60;
         private const int MAX_AUTH        = 10;
         private const int AUTH_WINDOW     = 300;

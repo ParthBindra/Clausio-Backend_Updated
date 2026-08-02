@@ -11,9 +11,10 @@ namespace Clausio.Legal.API.Controllers;
 [Route("api/cases")]
 public class CasesController(ICaseService caseService) : ControllerBase
 {
+    // ✅ FIXED — passes userId so only this user's cases are returned
     [HttpGet]
     public async Task<IActionResult> List(CancellationToken cancellationToken) =>
-        Ok(await caseService.ListAsync(cancellationToken));
+        Ok(await caseService.ListAsync(User.GetUserId(), cancellationToken));
 
     [HttpPost]
     public async Task<IActionResult> Create(CreateCaseDto dto, CancellationToken cancellationToken) =>
