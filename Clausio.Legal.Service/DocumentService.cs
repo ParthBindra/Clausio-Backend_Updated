@@ -1,5 +1,6 @@
 using Clausio.Legal.Core.Entities;
 using Clausio.Legal.Infrastructure;
+using Clausio.Legal.Infrastructure.Extraction;
 using Clausio.Legal.Infrastructure.Storage;
 using Microsoft.EntityFrameworkCore;
 
@@ -12,7 +13,7 @@ public interface IDocumentService
     Task<bool> DeleteAsync(Guid caseId, Guid id, CancellationToken cancellationToken = default);
 }
 
-public class DocumentService(ClausioDbContext db, IDocumentStorage storage) : IDocumentService
+public class DocumentService(ClausioDbContext db, IDocumentStorage storage, IDocumentTextExtractor textExtractor) : IDocumentService
 {
     public Task<List<Document>> ListAsync(Guid caseId, CancellationToken cancellationToken = default) =>
         db.Documents.AsNoTracking().Where(d => d.CaseId == caseId).OrderByDescending(d => d.CreatedAt).ToListAsync(cancellationToken);
@@ -21,6 +22,7 @@ public class DocumentService(ClausioDbContext db, IDocumentStorage storage) : ID
     {
         var documentId = Guid.NewGuid();
         var storagePath = await storage.SaveAsync(caseId, documentId, fileName, content, cancellationToken);
+        var extractedText = await textExtractor.ExtractTextAsync(storagePath, fileName, cancellationToken);
 
         var entity = new Document
         {
@@ -32,6 +34,7 @@ public class DocumentService(ClausioDbContext db, IDocumentStorage storage) : ID
             StoragePath = storagePath,
             ContentType = contentType,
             SizeBytes = sizeBytes,
+            ExtractedText = extractedText,
         };
 
         db.Documents.Add(entity);
