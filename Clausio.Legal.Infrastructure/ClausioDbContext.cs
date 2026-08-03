@@ -8,6 +8,10 @@ public class ClausioDbContext(DbContextOptions<ClausioDbContext> options) : DbCo
     public DbSet<User> Users => Set<User>();
     public DbSet<Client> Clients => Set<Client>();
     public DbSet<Case> Cases => Set<Case>();
+
+    public DbSet<Invoice> Invoices => Set<Invoice>();
+    public DbSet<Payment> Payments => Set<Payment>();
+    public DbSet<Expense> Expenses => Set<Expense>();
     public DbSet<ActionPlan> ActionPlans => Set<ActionPlan>();
     public DbSet<Contradiction> Contradictions => Set<Contradiction>();
     public DbSet<Document> Documents => Set<Document>();

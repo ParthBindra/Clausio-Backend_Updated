@@ -57,6 +57,7 @@ builder.Services.AddSingleton<AiResponseParser>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IClientService, ClientService>();
 builder.Services.AddScoped<ICaseService, CaseService>();
+builder.Services.AddScoped<IBillingService, BillingService>();
 builder.Services.AddScoped<IActionPlanService, ActionPlanService>();
 builder.Services.AddScoped<IContradictionService, ContradictionService>();
 builder.Services.AddScoped<IDocumentService, DocumentService>();
@@ -90,13 +91,19 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     });
 builder.Services.AddAuthorization();
 
-// CORS
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
-        policy.AllowAnyOrigin()
+        policy.WithOrigins(
+                "http://localhost:3000",
+                "http://localhost:3001",
+                "https://clausio.vercel.app",
+                "https://clausio.io",
+                "https://www.clausio.io"
+              )
               .AllowAnyHeader()
-              .AllowAnyMethod());
+              .AllowAnyMethod()
+              .AllowCredentials());
 });
 
 var app = builder.Build();
